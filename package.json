@@ -1,0 +1,30 @@
+{
+	"name": 		"timeseries-transform",
+	"author": {
+		"name": "Julien Loutre",
+		"email": "julien@twenty-six-medias.com",
+		"url": "http://www.twenty-six-medias.com/"
+	},
+	"description": 	"NodeJS Process dashboard",
+	"version":		"0.0.1",
+	"keywords": [],
+	"homepage": "https://github.com/26medias/timeseries-transform",
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/26medias/timeseries-transform.git"
+	},
+	"bugs": {
+		"url": "https://github.com/26medias/timeseries-transform/issues"
+	},
+	"main": "timeseries-transform.js",
+	"readmeFilename": "README.md",
+	"licenses": [
+	{
+		"type": "MIT"
+	}
+	],
+	"dependencies": {
+		"underscore":	"latest"
+	}
+}
+

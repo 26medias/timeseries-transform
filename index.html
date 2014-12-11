@@ -1,0 +1,199 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+	<head>
+		<title></title>
+		<meta charset="UTF-8">
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+		
+		<!-- jQuery -->
+		<script src="https://code.jquery.com/jquery-2.1.1.min.js" type="text/javascript"></script>
+		
+		<!-- Latest compiled and minified JavaScript -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+		
+		<!-- Momentjs -->
+		<script src="http://momentjs.com/downloads/moment.js" type="text/javascript"></script>
+		
+		<!-- Underscore -->
+		<script src="http://underscorejs.org/underscore-min.js" type="text/javascript"></script>
+		
+		<!-- Highcharts -->
+		<script src="http://code.highcharts.com/stock/highstock.js"></script>
+		<script src="http://code.highcharts.com/stock/highcharts-more.js"></script>
+		
+		<!-- Libs -->
+		<script src="timeseries-transform.js" type="text/javascript"></script>
+		<script src="highcharts-generator.js" type="text/javascript"></script>
+		
+	</head>
+	<body ng-app="main" ng-controller="mainCtrl">
+		<div class="container">
+			<div id="chartdiv" style="height:600px;"></div>
+		</div>
+		
+		<script type="text/javascript">
+			
+			var generateOHLC = function(n) {
+				var i;
+				var output = [];
+				for (i=0;i<n;i++) {
+					if (i==0) {
+						var o = 100+Math.random()*20;
+					} else {
+						var o = output[i-1].c;
+					}
+					
+					output.push({
+						d:	moment().subtract(n-i, 'days').millisecond(0).second(0).toDate().getTime(),
+						o:	o,
+						h:	o+2,
+						l:	o-2,
+						c:	o+(Math.random()*2-Math.random()*2),
+						v:	Math.random()*100000
+					});
+				}
+				return output;
+			}
+			var generateSerie = function(n) {
+				var i;
+				var output = [];
+				for (i=0;i<n;i++) {
+					if (i==0) {
+						var o = 100+Math.random()*20;
+					} else {
+						var o = output[i-1].v;
+					}
+					
+					output.push({
+						d:	moment().subtract(n-i, 'days').millisecond(0).second(0).toDate().getTime(),
+						v:	o+(Math.random()*2-Math.random()*2)
+					});
+				}
+				return output;
+			}
+			
+			var generateRangeSerie = function(n) {
+				var i;
+				var output = [];
+				for (i=0;i<n;i++) {
+					if (i==0) {
+						var up = 100+Math.random()*20;
+					} else {
+						var up = output[i-1].up;
+					}
+					
+					output.push({
+						d:		moment().subtract(n-i, 'days').millisecond(0).second(0).toDate().getTime(),
+						up:		up+(Math.random()*1),
+						down:	up-(Math.random()*2)
+					});
+				}
+				return output;
+			}
+			
+			// Generate demo datasets
+			var count		= 1000;
+			
+			
+			var ohlc = generateOHLC(count);
+			
+			var t2 		= new timeseriesTransform(ohlc);
+			var output 	= t2.transform('bollinger', {
+				period:	20,
+				stdev:	2,
+				value:	'c'
+			});
+			//console.log("output",output);
+			
+			var stdev = t2.stats.stdev(false, {value:'c'});
+			var mean = t2.stats.mean(false, {value:'c'});
+			console.log("stdev",stdev);
+			console.log("mean",mean);
+			console.log("pct",(stdev/mean*100).toFixed(2));
+			
+			
+			
+			// Now we chart the data
+			var g = new hcGenerator($('#chartdiv'), {
+				margin:	2
+			});
+			
+			
+			// We create the panels
+			var panelTop = g.panel({
+				name:	'ohlc',
+				height:	60,
+				align:	'right'
+			});
+			var panelVolume = g.panel({
+				name:	'Volume',
+				height:	40,
+				align:	'left'
+			});
+			
+			// We create the series and attach them to panels
+			var ohlcSerie = g.serie({
+				panel:		panelTop.id,
+				name:		'OHLC',
+				data:		ohlc,
+				type:		'candlestick',
+				convert:	function(datapoint) {
+					return [datapoint.d, datapoint.o, datapoint.h, datapoint.l, datapoint.c]
+				}
+			});
+			g.serie({
+				panel:		panelTop.id,
+				type:		'arearange',
+				name:		'Bands',
+				color:		'rgba(76,182,203,0.2)',
+				data:		output,
+				convert:	function(datapoint) {
+					return [datapoint.d, datapoint.down, datapoint.up]
+				}
+			});
+			 g.serie({
+				panel:		panelTop.id,
+				type:		'spline',
+				name:		'Avg',
+				color:		'rgba(255,0,0,0.8)',
+				data:		output,
+				convert:	function(datapoint) {
+					return [datapoint.d, datapoint.mid]
+				}
+			});
+			g.serie({
+				panel:		panelVolume.id,
+				type:		'column',
+				name:		'Volume',
+				data:		ohlc,
+				convert:	function(datapoint) {
+					return [datapoint.d, datapoint.v]
+				}
+			});
+			
+			g.marker({
+				name:		'Signals',
+				onSeries:	ohlcSerie.id,
+				colors:		{
+					text:	'#ffffff',
+					out:	'rgba(0,128,0,0.9)',
+					hover:	'rgba(0,174,0,0.9)'
+				},
+				data:		[{
+					x:		moment().subtract(1,'months').toDate(),
+					title:	'BUY!!!'
+				},{
+					x:		moment().subtract(7,'days').toDate(),
+					title:	'BUY!!!'
+				}]
+			});
+			
+			g.render();
+		</script>
+		
+	</body>
+</html>
